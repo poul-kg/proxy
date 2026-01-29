@@ -432,6 +432,28 @@ Common issues:
 - Port 3128 in use: change `PROXY_PORT` in `.env`
 - Cache dir permissions: the entrypoint handles this, but if you see permission errors, try `sudo chown -R 13:13 cache_dir/`
 
+### Containers can't reach each other (503, DNS errors, "Unable to determine IP address")
+
+The `~/.docker/config.json` `proxies` config injects `http_proxy`/`https_proxy` into **running containers too**, not just builds. Internal service-to-service calls (e.g. `http://accounts:3022`) will go through squid, which can't resolve Docker-internal hostnames.
+
+**Fix:** List all your Docker service hostnames in `noProxy`:
+
+```json
+{
+  "proxies": {
+    "default": {
+      "httpProxy": "http://HOST_IP:3128",
+      "httpsProxy": "http://HOST_IP:3128",
+      "noProxy": "localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,service1,service2,service3"
+    }
+  }
+}
+```
+
+**Important:**
+- Node.js does **not** support CIDR notation in `no_proxy` — it checks the hostname string, not the resolved IP. You must list each service hostname explicitly.
+- After changing `~/.docker/config.json`, you must `docker compose up -d --force-recreate` — compose doesn't track this file for changes.
+
 ### Build arg proxy not working
 
 Some base images don't pass build args to all stages. In multi-stage builds, re-declare the args:
