@@ -5,6 +5,9 @@ CERT_DIR="/etc/squid/certs"
 CACHE_DIR="/var/spool/squid"
 SSL_DB="${CACHE_DIR}/ssl_db"
 
+# Remove stale PID file from previous crashes
+rm -f /run/squid.pid
+
 # Verify CA certificate exists
 if [ ! -f "${CERT_DIR}/ca.pem" ] || [ ! -f "${CERT_DIR}/ca.key" ]; then
     echo "ERROR: CA certificate not found at ${CERT_DIR}/ca.pem and ${CERT_DIR}/ca.key"
@@ -19,14 +22,15 @@ if [ ! -d "${SSL_DB}" ]; then
     chown -R proxy:proxy "${SSL_DB}"
 fi
 
-# Initialize cache directory if needed
-if [ ! -d "${CACHE_DIR}/rock" ]; then
-    echo "Initializing cache directory..."
-    squid -z -N 2>&1
-fi
-
 # Fix permissions
 chown -R proxy:proxy "${CACHE_DIR}"
+
+# Initialize cache directory if needed (creates swap directories)
+if [ ! -d "${CACHE_DIR}/00" ]; then
+    echo "Initializing cache directory..."
+    squid -z -N 2>&1
+    rm -f /run/squid.pid
+fi
 
 echo "Starting Squid proxy..."
 exec squid -NYC -d 1
