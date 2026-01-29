@@ -1,0 +1,17 @@
+services:
+  squid:
+    build: .
+    container_name: squid-proxy
+    ports:
+      - "${PROXY_PORT:-3128}:3128"
+    volumes:
+      - ./cache_dir:/var/spool/squid
+      - ./certs:/etc/squid/certs:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "squidclient", "-h", "localhost", "-p", "3128", "mgr:info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

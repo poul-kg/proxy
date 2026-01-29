@@ -1,0 +1,8 @@
+# CA certificates (contain private key — do not commit)
+certs/
+
+# Cache data
+cache_dir/
+
+# Environment config
+.env
